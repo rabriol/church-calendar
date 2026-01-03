@@ -1,7 +1,7 @@
 export const translations = {
   en: {
     // Header
-    title: 'Church Events Calendar',
+    title: 'Orangevale Church Events',
     selectChurch: 'Select Church',
 
     // Navigation
@@ -83,7 +83,7 @@ export const translations = {
 
   pt: {
     // Header
-    title: 'Calendário de Eventos da Igreja',
+    title: 'Eventos da Igreja Orangevale',
     selectChurch: 'Selecionar Igreja',
 
     // Navigation
