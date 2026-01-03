@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DayRow from './DayRow';
 import { getAllDaysInMonth, getMonthName, getEventsForDay } from '../utils/dateUtils';
 import { sampleEvents } from '../data/sampleEvents';
@@ -39,6 +39,42 @@ const Calendar = () => {
 
   // Use all events (church filter removed)
   const filteredEvents = events;
+
+  // Find the next upcoming event - memoized to prevent recalculation
+  const nextEventId = useMemo(() => {
+    const now = new Date();
+    let nextEvent = null;
+    let minTimeDiff = Infinity;
+
+    filteredEvents.forEach(event => {
+      // Skip events without time
+      if (!event.time) return;
+
+      const [year, month, day] = event.date.split('-').map(Number);
+      const eventDate = new Date(year, month - 1, day);
+
+      const timeMatch = event.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const period = timeMatch[3].toUpperCase();
+
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        eventDate.setHours(hours, minutes, 0, 0);
+      }
+
+      const timeDiff = eventDate - now;
+      if (timeDiff > 0 && timeDiff < minTimeDiff) {
+        minTimeDiff = timeDiff;
+        nextEvent = String(event.id); // Ensure it's a string
+      }
+    });
+
+    console.log('Next event ID:', nextEvent); // Debug log
+    return nextEvent;
+  }, [filteredEvents]);
 
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
@@ -180,6 +216,7 @@ const Calendar = () => {
                   key={dayInfo.dateString}
                   dayInfo={dayInfo}
                   events={eventsForDay}
+                  nextEventId={nextEventId}
                 />
               );
             })}

@@ -31,6 +31,31 @@ const parseCSV = (csv) => {
   return data;
 };
 
+// Fetch program data from a separate Google Sheet
+const fetchProgramData = async (programSheetId) => {
+  if (!programSheetId) return null;
+
+  try {
+    const url = getSheetCSVUrl(programSheetId);
+    const response = await axios.get(url);
+    const rows = parseCSV(response.data);
+
+    // Transform program rows to a structured format
+    return rows.map(row => ({
+      unit: row.unit || '',
+      startTime: row.start_time || '',
+      endTime: row.end_time || '',
+      act: row.act || '',
+      title: row.title || '',
+      presenter: row.presenter || ''
+    })).filter(item => item.title); // Only include rows with a title
+
+  } catch (error) {
+    console.error('Error fetching program data:', error);
+    return null;
+  }
+};
+
 // Parse a CSV line handling quoted values
 const parseCSVLine = (line) => {
   const result = [];
@@ -117,7 +142,7 @@ const expandRecurringEvent = (event, startDate, endDate) => {
 
       return {
         ...event,
-        id: `${event.row_id || event.event_id}-${index}`,
+        id: `${event.id}-occurrence-${index}`,
         date: `${year}-${month}-${day}`,
         isRecurring: true,
         occurrenceIndex: index
@@ -153,8 +178,11 @@ const transformSheetRowToEvent = (row) => {
     timeString = `${displayHours}:${minutes} ${period}`;
   }
 
+  // Generate a unique ID based on title and date
+  const uniqueId = row.event_id || row.row_id || `${row.title.replace(/\s+/g, '-').toLowerCase()}-${row.start_date.replace(/\//g, '-')}`;
+
   return {
-    id: row.row_id || row.event_id || Math.random().toString(36).substr(2, 9),
+    id: uniqueId,
     churchId: row.calendar_id || 'grace-community',
     title: row.title,
     description: row.description || '',
@@ -164,6 +192,7 @@ const transformSheetRowToEvent = (row) => {
     type: determineEventType(row.title),
     status: row.status || 'confirmed',
     recurrence_rule: row.recurrence_rule,
+    program_sheet_id: row.program_sheet_id || '',
     // Store original data for reference
     _original: {
       start_date: row.start_date,
@@ -214,6 +243,13 @@ export const fetchGoogleSheetsEvents = async () => {
     const baseEvents = rows
       .map(transformSheetRowToEvent)
       .filter(event => event !== null && event.status === 'confirmed');
+
+    // Fetch program data for events that have a program_sheet_id
+    await Promise.all(baseEvents.map(async (event) => {
+      if (event.program_sheet_id) {
+        event.program = await fetchProgramData(event.program_sheet_id);
+      }
+    }));
 
     // Expand recurring events
     const allEvents = [];

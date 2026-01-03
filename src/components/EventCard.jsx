@@ -5,13 +5,19 @@ import { isToday } from '../utils/dateUtils';
 import { getEventStatus, parseEventTime } from '../utils/eventTiming';
 import EventCountdown from './EventCountdown';
 
-const EventCard = ({ event }) => {
+const EventCard = ({ event, isNextEvent }) => {
   const { t, language } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const isTodayEvent = isToday(event.date);
 
   const hasDetails = event.presenter || event.program;
+
+  // Debug log
+  if (isNextEvent) {
+    console.log('Next event:', event.id, event.title);
+  }
 
   // Google Calendar Event Color Palette (Official) with appropriate text colors
   const googleColors = [
@@ -43,6 +49,47 @@ const EventCard = ({ event }) => {
 
     return () => clearInterval(timer);
   }, [isTodayEvent]);
+
+  // Countdown timer for next event
+  useEffect(() => {
+    if (!isNextEvent) return;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const [year, month, day] = event.date.split('-').map(Number);
+      const eventDate = new Date(year, month - 1, day);
+
+      if (event.time) {
+        const timeMatch = event.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeMatch) {
+          let hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2]);
+          const period = timeMatch[3].toUpperCase();
+
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours = 0;
+
+          eventDate.setHours(hours, minutes, 0, 0);
+        }
+      }
+
+      const diff = eventDate - now;
+
+      if (diff > 0) {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        setCountdown({ days, hours, minutes, seconds });
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(timer);
+  }, [isNextEvent, event.date, event.time]);
 
   const eventStatus = isTodayEvent ? getEventStatus(event, currentTime) : null;
 
@@ -129,6 +176,18 @@ const EventCard = ({ event }) => {
                   </>
                 )}
               </div>
+
+              {/* Next Event Countdown */}
+              {isNextEvent && (
+                <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded ${eventColor.text === 'text-white' ? 'bg-white bg-opacity-20' : 'bg-gray-900 bg-opacity-10'}`}>
+                  <svg className={`w-4 h-4 ${eventColor.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className={`text-sm font-medium ${eventColor.text}`}>
+                    Starts in: {countdown.days > 0 ? `${countdown.days}d ` : ''}{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Countdown and Expand Indicator */}
@@ -210,29 +269,44 @@ const EventCard = ({ event }) => {
 
                 {event.program && event.program.length > 0 && (
                   <div>
-                    <h5 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <h5 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
                       {lang.program}
                     </h5>
-                    <div className="ml-7 space-y-1">
+                    <div className="space-y-0">
                       {event.program.map((item, index) => {
                         // Check if this program item is current
                         let itemStatus = 'upcoming';
-                        if (isTodayEvent && eventStatus === 'ongoing') {
-                          const itemTime = parseEventTime(item.time);
-                          if (itemTime) {
+                        if (isTodayEvent && eventStatus === 'ongoing' && item.startTime) {
+                          const timeMatch = item.startTime.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+                          if (timeMatch) {
+                            let hours = parseInt(timeMatch[1]);
+                            const minutes = parseInt(timeMatch[2]);
+                            const period = timeMatch[4].toUpperCase();
+
+                            if (period === 'PM' && hours !== 12) hours += 12;
+                            if (period === 'AM' && hours === 12) hours = 0;
+
                             const [year, month, day] = event.date.split('-').map(Number);
-                            const itemDateTime = new Date(year, month - 1, day, itemTime.hours, itemTime.minutes, 0, 0);
+                            const itemDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
-                            const nextItemTime = index < event.program.length - 1
-                              ? parseEventTime(event.program[index + 1].time)
-                              : null;
+                            // Check end time for next item
+                            let nextItemDateTime = null;
+                            if (index < event.program.length - 1 && event.program[index + 1].startTime) {
+                              const nextTimeMatch = event.program[index + 1].startTime.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+                              if (nextTimeMatch) {
+                                let nextHours = parseInt(nextTimeMatch[1]);
+                                const nextMinutes = parseInt(nextTimeMatch[2]);
+                                const nextPeriod = nextTimeMatch[4].toUpperCase();
 
-                            const nextItemDateTime = nextItemTime
-                              ? new Date(year, month - 1, day, nextItemTime.hours, nextItemTime.minutes, 0, 0)
-                              : null;
+                                if (nextPeriod === 'PM' && nextHours !== 12) nextHours += 12;
+                                if (nextPeriod === 'AM' && nextHours === 12) nextHours = 0;
+
+                                nextItemDateTime = new Date(year, month - 1, day, nextHours, nextMinutes, 0, 0);
+                              }
+                            }
 
                             if (currentTime >= itemDateTime) {
                               if (nextItemDateTime && currentTime < nextItemDateTime) {
@@ -251,51 +325,79 @@ const EventCard = ({ event }) => {
                             {/* Timeline connector */}
                             {index < event.program.length - 1 && (
                               <div
-                                className={`absolute left-[40px] top-6 w-0.5 h-6 ${
-                                  itemStatus === 'completed' ? 'bg-green-500' : 'bg-gray-300'
+                                className={`absolute left-[7px] top-8 w-0.5 h-full ${
+                                  itemStatus === 'completed' ? 'bg-blue-500' : 'bg-gray-300'
                                 }`}
                               />
                             )}
 
-                            <div className={`flex items-start gap-3 text-sm py-2 px-3 rounded-lg transition-all ${
-                              itemStatus === 'current'
-                                ? 'bg-green-50 border-2 border-green-500 shadow-md'
-                                : itemStatus === 'completed'
-                                ? 'bg-gray-50 opacity-60'
-                                : 'bg-white'
+                            <div className={`flex items-start gap-3 py-2 transition-all ${
+                              itemStatus === 'current' ? 'pl-1' : ''
                             }`}>
                               {/* Timeline dot */}
-                              <div className="flex items-center min-w-[80px] gap-2">
-                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                                  itemStatus === 'current'
-                                    ? 'bg-green-500 ring-4 ring-green-200'
-                                    : itemStatus === 'completed'
-                                    ? 'bg-green-500'
-                                    : 'bg-gray-300'
-                                }`}>
-                                </div>
-                                <span className={`font-semibold ${
-                                  itemStatus === 'current' ? 'text-green-700' : 'text-gray-600'
-                                }`}>
-                                  {item.time}
-                                </span>
+                              <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-1 z-10 ${
+                                itemStatus === 'current'
+                                  ? 'bg-blue-600 ring-4 ring-blue-200'
+                                  : itemStatus === 'completed'
+                                  ? 'bg-blue-500'
+                                  : 'bg-gray-300'
+                              }`}>
                               </div>
-                              <div className="flex-1 flex items-center justify-between gap-2">
-                                <span className={`${
-                                  itemStatus === 'current'
-                                    ? 'text-gray-900 font-semibold'
-                                    : itemStatus === 'completed'
-                                    ? 'text-gray-500 line-through'
-                                    : 'text-gray-700'
-                                }`}>
-                                  {item.item}
-                                </span>
-                                {itemStatus === 'current' && (
-                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white flex items-center gap-1 flex-shrink-0">
-                                    <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
-                                    {language === 'pt' ? 'AGORA' : 'NOW'}
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline gap-2 mb-1">
+                                  <span className={`text-sm font-semibold ${
+                                    itemStatus === 'current' ? 'text-blue-700' : 'text-gray-600'
+                                  }`}>
+                                    {item.startTime}
                                   </span>
-                                )}
+                                  {item.endTime && (
+                                    <>
+                                      <span className="text-gray-400">→</span>
+                                      <span className="text-sm text-gray-500">{item.endTime}</span>
+                                    </>
+                                  )}
+                                  {item.unit && (
+                                    <span className="text-xs text-gray-400 ml-auto">
+                                      {item.unit}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className={`${
+                                  itemStatus === 'current'
+                                    ? 'bg-blue-50 border-l-4 border-blue-600 pl-3 py-2 -ml-1 rounded-r'
+                                    : itemStatus === 'completed'
+                                    ? 'opacity-60'
+                                    : ''
+                                }`}>
+                                  {item.act && (
+                                    <div className="text-xs font-medium text-gray-500 mb-1">
+                                      {item.act}
+                                    </div>
+                                  )}
+                                  <div className={`text-sm font-medium ${
+                                    itemStatus === 'current'
+                                      ? 'text-gray-900'
+                                      : itemStatus === 'completed'
+                                      ? 'text-gray-500 line-through'
+                                      : 'text-gray-700'
+                                  }`}>
+                                    {item.title}
+                                  </div>
+                                  {item.presenter && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      {item.presenter}
+                                    </div>
+                                  )}
+                                  {itemStatus === 'current' && (
+                                    <span className="inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white items-center gap-1">
+                                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                                      {language === 'pt' ? 'AGORA' : 'NOW'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>

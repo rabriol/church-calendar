@@ -3,7 +3,7 @@ import EventCard from './EventCard';
 import { isToday } from '../utils/dateUtils';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const DayRow = ({ dayInfo, events }) => {
+const DayRow = ({ dayInfo, events, nextEventId }) => {
   const { t } = useLanguage();
   const isTodayDate = isToday(dayInfo.dateString);
 
@@ -30,7 +30,11 @@ const DayRow = ({ dayInfo, events }) => {
         <div className="flex-1 min-w-0 py-1">
           <div className="space-y-2">
             {events.map(event => (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                isNextEvent={String(event.id) === nextEventId}
+              />
             ))}
           </div>
         </div>
