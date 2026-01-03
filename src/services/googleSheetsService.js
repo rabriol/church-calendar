@@ -9,10 +9,36 @@ const getSheetCSVUrl = (sheetId, gid = 0) => {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
 };
 
-// Parse CSV data
+// Parse CSV data - properly handles multi-line quoted fields
 const parseCSV = (csv) => {
-  const lines = csv.split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
+  const lines = [];
+  let currentLine = '';
+  let insideQuotes = false;
+
+  // Split CSV into lines while respecting quoted fields with newlines
+  for (let i = 0; i < csv.length; i++) {
+    const char = csv[i];
+
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      currentLine += char;
+    } else if (char === '\n' && !insideQuotes) {
+      if (currentLine.trim()) {
+        lines.push(currentLine);
+      }
+      currentLine = '';
+    } else {
+      currentLine += char;
+    }
+  }
+
+  // Add last line if exists
+  if (currentLine.trim()) {
+    lines.push(currentLine);
+  }
+
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
+  console.log('📋 CSV Headers:', headers);
 
   const data = [];
   for (let i = 1; i < lines.length; i++) {
@@ -24,6 +50,13 @@ const parseCSV = (csv) => {
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
     });
+
+    // Debug log for E-0017
+    if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
+      console.log('📄 Raw CSV line for E-0017:', lines[i]);
+      console.log('📊 Parsed values for E-0017:', values);
+      console.log('🗂️ Row object for E-0017:', row);
+    }
 
     data.push(row);
   }
@@ -156,19 +189,42 @@ const expandRecurringEvent = (event, startDate, endDate) => {
 
 // Transform Google Sheets row to event format
 const transformSheetRowToEvent = (row) => {
-  if (!row.title || !row.start_date) return null;
+  // Debug logging for specific event
+  if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
+    console.log('🔍 Processing event E-0017:', {
+      row_id: row.row_id,
+      event_id: row.event_id,
+      title: row.title,
+      start_date: row.start_date,
+      status: row.status,
+      fullRow: row
+    });
+  }
+
+  if (!row.title || !row.start_date) {
+    if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
+      console.log('❌ Event E-0017 rejected: Missing title or start_date');
+    }
+    return null;
+  }
 
   const startDate = parseSheetDate(row.start_date);
-  if (!startDate) return null;
+  if (!startDate) {
+    if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
+      console.log('❌ Event E-0017 rejected: Could not parse start_date');
+    }
+    return null;
+  }
 
   const startTime = parseSheetTime(row.start_time);
+  const endTime = parseSheetTime(row.end_time);
 
   // Format date as YYYY-MM-DD using the date components directly
   const year = startDate.getFullYear();
   const month = String(startDate.getMonth() + 1).padStart(2, '0');
   const day = String(startDate.getDate()).padStart(2, '0');
 
-  // Format time
+  // Format start time
   let timeString = '';
   if (startTime) {
     const hours = startTime.hours;
@@ -178,10 +234,20 @@ const transformSheetRowToEvent = (row) => {
     timeString = `${displayHours}:${minutes} ${period}`;
   }
 
+  // Format end time
+  let endTimeString = '';
+  if (endTime) {
+    const hours = endTime.hours;
+    const minutes = String(endTime.minutes).padStart(2, '0');
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    endTimeString = `${displayHours}:${minutes} ${period}`;
+  }
+
   // Generate a unique ID based on title and date
   const uniqueId = row.event_id || row.row_id || `${row.title.replace(/\s+/g, '-').toLowerCase()}-${row.start_date.replace(/\//g, '-')}`;
 
-  return {
+  const event = {
     id: uniqueId,
     churchId: row.calendar_id || 'grace-community',
     title: row.title,
@@ -189,19 +255,29 @@ const transformSheetRowToEvent = (row) => {
     location: row.location || '',
     date: `${year}-${month}-${day}`,
     time: timeString,
+    endTime: endTimeString,
     type: determineEventType(row.title),
     status: row.status || 'confirmed',
     recurrence_rule: row.recurrence_rule,
     program_sheet_id: row.program_sheet_id || '',
+    youtubeUrl: row.youtube_url || '',
+    isLive: row.is_live?.toUpperCase() === 'TRUE',
     // Store original data for reference
     _original: {
       start_date: row.start_date,
       end_date: row.end_date,
       start_time: row.start_time,
-      end_time: row.end_time,
+      end_time: endTimeString,
       timezone: row.timezone
     }
   };
+
+  // Debug logging for specific event
+  if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
+    console.log('✅ Event E-0017 transformed successfully:', event);
+  }
+
+  return event;
 };
 
 // Determine event type based on title (you can customize this logic)
@@ -242,7 +318,21 @@ export const fetchGoogleSheetsEvents = async () => {
     // Transform rows to events
     const baseEvents = rows
       .map(transformSheetRowToEvent)
-      .filter(event => event !== null && event.status === 'confirmed');
+      .filter(event => {
+        const isValid = event !== null && event.status === 'confirmed';
+
+        // Debug logging for E-0017
+        if (event && (event.id === 'E-0017' || event.id?.includes('E-0017'))) {
+          console.log('🔍 Filtering event E-0017:', {
+            isNull: event === null,
+            status: event?.status,
+            isValid: isValid,
+            willBeIncluded: isValid
+          });
+        }
+
+        return isValid;
+      });
 
     // Fetch program data for events that have a program_sheet_id
     await Promise.all(baseEvents.map(async (event) => {

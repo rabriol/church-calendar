@@ -3,7 +3,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { translateEventContent } from '../utils/translateEvent';
 import { isToday } from '../utils/dateUtils';
 import { getEventStatus, parseEventTime } from '../utils/eventTiming';
-import EventCountdown from './EventCountdown';
 
 const EventCard = ({ event, isNextEvent }) => {
   const { t, language } = useLanguage();
@@ -146,7 +145,7 @@ const EventCard = ({ event, isNextEvent }) => {
     }
   }
 
-  const hasExpandableContent = event.location || event.description || hasDetails;
+  const hasExpandableContent = event.location || event.description || hasDetails || event.youtubeUrl;
 
   return (
     <div
@@ -163,15 +162,17 @@ const EventCard = ({ event, isNextEvent }) => {
                 {translateEventContent(event.title, language)}
               </h4>
               <div className={`flex flex-wrap items-center gap-2 text-xs ${eventColor.text} opacity-90`}>
-                <span className="flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {event.time}
-                </span>
+                {event.time && (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {event.time}
+                  </span>
+                )}
                 {statusBadge && (
                   <>
-                    <span className="opacity-50">•</span>
+                    {event.time && <span className="opacity-50">•</span>}
                     {statusBadge}
                   </>
                 )}
@@ -190,11 +191,8 @@ const EventCard = ({ event, isNextEvent }) => {
               )}
             </div>
 
-            {/* Countdown and Expand Indicator */}
+            {/* Expand Indicator */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {isTodayEvent && eventStatus === 'upcoming' && (
-                <EventCountdown event={event} />
-              )}
               {hasExpandableContent && (
                 <svg
                   className={`w-5 h-5 ${eventColor.text} opacity-60 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -209,7 +207,7 @@ const EventCard = ({ event, isNextEvent }) => {
           </div>
 
             {/* YouTube Live Badge */}
-            {event.youtubeUrl && (
+            {event.youtubeUrl && event.isLive && (
               <a
                 href={event.youtubeUrl}
                 target="_blank"
@@ -230,6 +228,90 @@ const EventCard = ({ event, isNextEvent }) => {
             {/* Expanded Details Section - White Background like Google Calendar */}
             {isExpanded && hasExpandableContent && (
               <div className="mt-3 -mx-3 -mb-3 bg-white rounded-b p-4 space-y-4 animate-fadeIn border border-gray-200 shadow-sm">
+                {/* Date and Time Details */}
+                {(event._original?.start_date || event.time) && (
+                  <div className="flex items-start gap-2">
+                    {event.time && (
+                      <svg className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {!event.time && (
+                      <svg className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                    <div className="text-sm text-gray-700 flex-1">
+                      {(() => {
+                        const [year, month, day] = event.date.split('-').map(Number);
+                        const startDate = new Date(year, month - 1, day);
+                        const days = language === 'en'
+                          ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                          : ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                        const months = language === 'en'
+                          ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                          : ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+                        const dayName = days[startDate.getDay()];
+                        const monthName = months[startDate.getMonth()];
+                        const dateStr = `${dayName}, ${monthName} ${day}, ${year}`;
+
+                        // Check if there's an end date
+                        const hasEndDate = event._original?.end_date && event._original.end_date !== event._original.start_date;
+                        const endTimeStr = event.endTime;
+
+                        if (hasEndDate && event._original?.end_date) {
+                          // Multi-day event
+                          const [endMonth, endDay, endYear] = event._original.end_date.split('/').map(Number);
+                          const endDate = new Date(endYear, endMonth - 1, endDay);
+                          const endDayName = days[endDate.getDay()];
+                          const endMonthName = months[endDate.getMonth()];
+                          const endDateStr = `${endDayName}, ${endMonthName} ${endDay}, ${endYear}`;
+
+                          return (
+                            <>
+                              <div className="font-medium">{dateStr}</div>
+                              {event.time && <div className="text-gray-600 mt-0.5">{event.time}</div>}
+                              <div className="text-gray-500 my-1">–</div>
+                              <div className="font-medium">{endDateStr}</div>
+                              {endTimeStr && <div className="text-gray-600 mt-0.5">{endTimeStr}</div>}
+                            </>
+                          );
+                        } else {
+                          // Same day event
+                          return (
+                            <>
+                              <div className="font-medium">{dateStr}</div>
+                              {event.time && endTimeStr ? (
+                                <div className="text-gray-600 mt-0.5">{event.time} – {endTimeStr}</div>
+                              ) : event.time ? (
+                                <div className="text-gray-600 mt-0.5">{event.time}</div>
+                              ) : null}
+                            </>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* YouTube Link */}
+                {event.youtubeUrl && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <a
+                      href={event.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-1"
+                    >
+                      {event.youtubeUrl}
+                    </a>
+                  </div>
+                )}
+
                 {/* Location */}
                 {event.location && (
                   <div className="flex items-start gap-2">
