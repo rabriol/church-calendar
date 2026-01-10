@@ -13,12 +13,7 @@ const EventCard = ({ event, isNextEvent }) => {
 
   const hasDetails = event.presenter || event.program;
 
-  // Debug log
-  if (isNextEvent) {
-    console.log('Next event:', event.id, event.title);
-  }
-
-  // Google Calendar Event Color Palette (Official) with appropriate text colors
+  // Google Calendar Event Color Palette (Official) with appropriate text colors (fallback)
   const googleColors = [
     { bg: 'bg-[#F6BF26]', text: 'text-gray-900' },      // Banana - dark text on light yellow
     { bg: 'bg-[#039BE5]', text: 'text-white' },         // Peacock - white text on blue
@@ -27,7 +22,7 @@ const EventCard = ({ event, isNextEvent }) => {
     { bg: 'bg-[#F4511E]', text: 'text-white' },         // Tangerine - white text on orange
   ];
 
-  // Generate consistent color based on event ID
+  // Generate consistent color based on event ID (fallback)
   const getEventColor = (eventId) => {
     let hash = 0;
     const id = String(eventId);
@@ -37,7 +32,22 @@ const EventCard = ({ event, isNextEvent }) => {
     return googleColors[Math.abs(hash) % googleColors.length];
   };
 
-  const eventColor = getEventColor(event.id);
+  // Use color from Google Sheet if available, otherwise use hash-based color
+  const eventColor = event.color
+    ? {
+        bg: '', // We'll use inline styles for custom colors
+        text: '', // We'll use inline styles for custom colors
+        hex: event.color.hex,
+        textHex: event.color.textColor,
+        isCustomColor: true
+      }
+    : getEventColor(event.id);
+
+  // Inline styles for custom colors from Google Sheet
+  const customColorStyle = eventColor.isCustomColor ? {
+    backgroundColor: eventColor.hex,
+    color: eventColor.textHex
+  } : {};
 
   useEffect(() => {
     if (!isTodayEvent) return;
@@ -92,8 +102,39 @@ const EventCard = ({ event, isNextEvent }) => {
 
   const eventStatus = isTodayEvent ? getEventStatus(event, currentTime) : null;
 
+  // Check if event is in the past
+  const isPastEvent = (() => {
+    const now = new Date();
+    const [year, month, day] = event.date.split('-').map(Number);
+    const eventDate = new Date(year, month - 1, day);
+
+    if (event.time) {
+      const timeMatch = event.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const period = timeMatch[3].toUpperCase();
+
+        if (period === 'PM' && hours !== 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+
+        eventDate.setHours(hours, minutes, 0, 0);
+      } else {
+        // No time, just check if it's a past date
+        eventDate.setHours(23, 59, 59, 999);
+      }
+    } else {
+      // All-day event, consider past if date has passed
+      eventDate.setHours(23, 59, 59, 999);
+    }
+
+    return eventDate < now;
+  })();
+
   // Determine card styling based on status - Google Calendar Style
-  let cardClasses = `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer`;
+  let cardClasses = eventColor.isCustomColor
+    ? `p-3 rounded hover:shadow-sm transition-all cursor-pointer ${isPastEvent ? 'grayscale opacity-60' : ''}`
+    : `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer ${isPastEvent ? 'grayscale opacity-60' : ''}`;
   let statusBadge = null;
 
   const statusLabels = {
@@ -125,14 +166,18 @@ const EventCard = ({ event, isNextEvent }) => {
 
   if (isTodayEvent && eventStatus) {
     if (eventStatus === 'finished') {
-      cardClasses = `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer opacity-60`;
+      cardClasses = eventColor.isCustomColor
+        ? `p-3 rounded hover:shadow-sm transition-all cursor-pointer grayscale opacity-60`
+        : `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer grayscale opacity-60`;
       statusBadge = (
         <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-white">
           {lang.finished}
         </span>
       );
     } else if (eventStatus === 'ongoing') {
-      cardClasses = `${eventColor.bg} p-3 rounded shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-gray-900`;
+      cardClasses = eventColor.isCustomColor
+        ? `p-3 rounded shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-gray-900`
+        : `${eventColor.bg} p-3 rounded shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-gray-900`;
       statusBadge = (
         <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-900 text-white flex items-center gap-1">
           <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
@@ -140,7 +185,9 @@ const EventCard = ({ event, isNextEvent }) => {
         </span>
       );
     } else if (eventStatus === 'upcoming') {
-      cardClasses = `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer`;
+      cardClasses = eventColor.isCustomColor
+        ? `p-3 rounded hover:shadow-sm transition-all cursor-pointer`
+        : `${eventColor.bg} p-3 rounded hover:shadow-sm transition-all cursor-pointer`;
       // No badge for upcoming events - countdown badge shows instead
     }
   }
@@ -150,6 +197,7 @@ const EventCard = ({ event, isNextEvent }) => {
   return (
     <div
       className={cardClasses}
+      style={customColorStyle}
       onClick={() => hasExpandableContent && setIsExpanded(!isExpanded)}
     >
       <div className="flex items-start gap-3">
@@ -158,10 +206,10 @@ const EventCard = ({ event, isNextEvent }) => {
           {/* Title and Time/Location */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h4 className={`font-medium ${eventColor.text} text-base mb-1 truncate`}>
+              <h4 className={`font-medium ${eventColor.isCustomColor ? '' : eventColor.text} text-base mb-1 truncate`}>
                 {translateEventContent(event.title, language)}
               </h4>
-              <div className={`flex flex-wrap items-center gap-2 text-xs ${eventColor.text} opacity-90`}>
+              <div className={`flex flex-wrap items-center gap-2 text-xs ${eventColor.isCustomColor ? '' : eventColor.text} opacity-90`}>
                 {event.time && (
                   <span className="flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,11 +228,15 @@ const EventCard = ({ event, isNextEvent }) => {
 
               {/* Next Event Countdown */}
               {isNextEvent && (
-                <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded ${eventColor.text === 'text-white' ? 'bg-white bg-opacity-20' : 'bg-gray-900 bg-opacity-10'}`}>
-                  <svg className={`w-4 h-4 ${eventColor.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded ${
+                  eventColor.isCustomColor
+                    ? (eventColor.textHex === '#FFFFFF' ? 'bg-white bg-opacity-20' : 'bg-gray-900 bg-opacity-10')
+                    : (eventColor.text === 'text-white' ? 'bg-white bg-opacity-20' : 'bg-gray-900 bg-opacity-10')
+                }`}>
+                  <svg className={`w-4 h-4 ${eventColor.isCustomColor ? '' : eventColor.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className={`text-sm font-medium ${eventColor.text}`}>
+                  <span className={`text-sm font-medium ${eventColor.isCustomColor ? '' : eventColor.text}`}>
                     Starts in: {countdown.days > 0 ? `${countdown.days}d ` : ''}{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
                   </span>
                 </div>
@@ -195,7 +247,7 @@ const EventCard = ({ event, isNextEvent }) => {
             <div className="flex items-center gap-2 flex-shrink-0">
               {hasExpandableContent && (
                 <svg
-                  className={`w-5 h-5 ${eventColor.text} opacity-60 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`w-5 h-5 ${eventColor.isCustomColor ? '' : eventColor.text} opacity-60 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

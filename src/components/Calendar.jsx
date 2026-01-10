@@ -72,7 +72,6 @@ const Calendar = () => {
       }
     });
 
-    console.log('Next event ID:', nextEvent); // Debug log
     return nextEvent;
   }, [filteredEvents]);
 
@@ -104,8 +103,77 @@ const Calendar = () => {
       <div className="max-w-7xl mx-auto">
         {/* Top Header Bar - Google Calendar Style */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
+          <div className="px-3 sm:px-6 py-3 sm:py-4">
+            {/* Mobile Layout */}
+            <div className="flex flex-col gap-2.5 sm:hidden">
+              {/* Row 1: Title */}
+              <div className="flex items-center justify-between">
+                <h1 className="text-base font-normal text-gray-700 flex-1 truncate pr-2">
+                  {t('title')}
+                </h1>
+                <button
+                  onClick={goToToday}
+                  className="px-2.5 py-1 text-xs font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors flex-shrink-0"
+                >
+                  {t('goToToday')}
+                </button>
+              </div>
+
+              {/* Row 2: Month Navigation and Language */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <button
+                    onClick={goToPreviousMonth}
+                    className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+                    aria-label="Previous month"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <h2 className="text-sm font-medium text-gray-700 flex-1 text-center">
+                    {t(`months.${getMonthName(currentMonth)}`)} {currentYear}
+                  </h2>
+
+                  <button
+                    onClick={goToNextMonth}
+                    className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+                    aria-label="Next month"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => switchLanguage('en')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      language === 'en'
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    onClick={() => switchLanguage('pt')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      language === 'pt'
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    PT
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center justify-between">
               {/* Left: Logo/Title and Month Navigation */}
               <div className="flex items-center gap-6">
                 <h1 className="text-xl font-normal text-gray-700">

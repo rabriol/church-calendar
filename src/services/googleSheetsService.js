@@ -9,6 +9,66 @@ const getSheetCSVUrl = (sheetId, gid = 0) => {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
 };
 
+// Fetch colors from Colors tab
+const fetchColors = async () => {
+  try {
+    // Try to fetch the Colors tab - you may need to find the correct gid
+    // We'll try multiple gids to find the Colors tab
+    console.log('🔍 Searching for Colors tab...');
+
+    for (let gid of [1646991692, 0, 1, 2, 3, 4, 5]) {
+      try {
+        const url = getSheetCSVUrl(SHEET_ID, gid);
+        console.log(`  Trying gid=${gid}...`);
+        const response = await axios.get(url);
+        const rows = parseCSV(response.data);
+
+        console.log(`  gid=${gid} - Found ${rows.length} rows`);
+        if (rows.length > 0) {
+          const firstRow = rows[0];
+          const headers = Object.keys(firstRow);
+          console.log(`  gid=${gid} - Headers:`, headers);
+
+          // Check if this is the Colors tab by looking for expected headers
+          const hasIdColumn = headers.some(h => h.toLowerCase() === 'id');
+          const hasHexColumn = headers.some(h => h.toLowerCase() === 'hex');
+
+          console.log(`  gid=${gid} - Has 'id' column: ${hasIdColumn}, Has 'hex' column: ${hasHexColumn}`);
+
+          if (hasIdColumn && hasHexColumn) {
+            console.log('✅ Found Colors tab at gid:', gid);
+
+            // Create a color mapping: { colorId: { id, visual, hex, text_color } }
+            const colorMap = {};
+            rows.forEach(row => {
+              if (row.id && row.hex) {
+                colorMap[row.id.toLowerCase()] = {
+                  id: row.id,
+                  visual: row.visual || '',
+                  hex: row.hex,
+                  textColor: row.text_color || '#FFFFFF'
+                };
+              }
+            });
+
+            console.log('🎨 Loaded colors:', colorMap);
+            return colorMap;
+          }
+        }
+      } catch (err) {
+        console.log(`  gid=${gid} - Error:`, err.message);
+        continue;
+      }
+    }
+
+    console.warn('⚠️ Colors tab not found, using default colors');
+    return null;
+  } catch (error) {
+    console.error('Error fetching colors:', error);
+    return null;
+  }
+};
+
 // Parse CSV data - properly handles multi-line quoted fields
 const parseCSV = (csv) => {
   const lines = [];
@@ -188,7 +248,7 @@ const expandRecurringEvent = (event, startDate, endDate) => {
 };
 
 // Transform Google Sheets row to event format
-const transformSheetRowToEvent = (row) => {
+const transformSheetRowToEvent = (row, colorMap = null) => {
   // Debug logging for specific event
   if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
     console.log('🔍 Processing event E-0017:', {
@@ -197,6 +257,7 @@ const transformSheetRowToEvent = (row) => {
       title: row.title,
       start_date: row.start_date,
       status: row.status,
+      color_id: row.color_id,
       fullRow: row
     });
   }
@@ -247,6 +308,13 @@ const transformSheetRowToEvent = (row) => {
   // Generate a unique ID based on title and date
   const uniqueId = row.event_id || row.row_id || `${row.title.replace(/\s+/g, '-').toLowerCase()}-${row.start_date.replace(/\//g, '-')}`;
 
+  // Get color from colorMap if available
+  let eventColor = null;
+  if (colorMap && row.color_id) {
+    const colorId = row.color_id.toLowerCase().trim();
+    eventColor = colorMap[colorId] || null;
+  }
+
   const event = {
     id: uniqueId,
     churchId: row.calendar_id || 'grace-community',
@@ -262,6 +330,7 @@ const transformSheetRowToEvent = (row) => {
     program_sheet_id: row.program_sheet_id || '',
     youtubeUrl: row.youtube_url || '',
     isLive: row.is_live?.toUpperCase() === 'TRUE',
+    color: eventColor, // Add color from Colors tab
     // Store original data for reference
     _original: {
       start_date: row.start_date,
@@ -310,14 +379,17 @@ const determineEventType = (title) => {
 // Fetch and parse events from Google Sheets
 export const fetchGoogleSheetsEvents = async () => {
   try {
+    // Fetch colors first
+    const colorMap = await fetchColors();
+
     const url = getSheetCSVUrl(SHEET_ID);
     const response = await axios.get(url);
 
     const rows = parseCSV(response.data);
 
-    // Transform rows to events
+    // Transform rows to events, passing colorMap
     const baseEvents = rows
-      .map(transformSheetRowToEvent)
+      .map(row => transformSheetRowToEvent(row, colorMap))
       .filter(event => {
         const isValid = event !== null && event.status === 'confirmed';
 
