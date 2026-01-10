@@ -192,7 +192,7 @@ const EventCard = ({ event, isNextEvent }) => {
     }
   }
 
-  const hasExpandableContent = event.location || event.description || hasDetails || event.youtubeUrl;
+  const hasExpandableContent = event.location || event.description || hasDetails || event.youtubeUrl || event.zoomUrl;
 
   return (
     <div
@@ -360,6 +360,25 @@ const EventCard = ({ event, isNextEvent }) => {
                       className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-1"
                     >
                       {event.youtubeUrl}
+                    </a>
+                  </div>
+                )}
+
+                {/* Zoom Link */}
+                {event.zoomUrl && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 32 32" fill="none">
+                      <rect width="32" height="32" rx="6" fill="#2D8CFF"/>
+                      <path d="M9 11C9 10.4477 9.44772 10 10 10H17C17.5523 10 18 10.4477 18 11V21C18 21.5523 17.5523 22 17 22H10C9.44772 22 9 21.5523 9 21V11Z" fill="white"/>
+                      <path d="M18 13.5L23 10V22L18 18.5V13.5Z" fill="white"/>
+                    </svg>
+                    <a
+                      href={event.zoomUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-1"
+                    >
+                      {event.zoomUrl}
                     </a>
                   </div>
                 )}

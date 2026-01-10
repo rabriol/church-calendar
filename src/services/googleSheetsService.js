@@ -362,6 +362,7 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     recurrence_rule: row.recurrence_rule,
     program_sheet_id: row.program_sheet_id || '',
     youtubeUrl: row.youtube_url || '',
+    zoomUrl: row.zoom_url || '',
     isLive: row.is_live?.toUpperCase() === 'TRUE',
     color: eventColor, // Add color from Colors tab
     // Store original data for reference
