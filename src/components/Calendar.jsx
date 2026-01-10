@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DayRow from './DayRow';
 import { getAllDaysInMonth, getMonthName, getEventsForDay } from '../utils/dateUtils';
 import { sampleEvents } from '../data/sampleEvents';
-import { fetchGoogleSheetsEvents } from '../services/googleSheetsService';
+import { fetchGoogleSheetsEvents, fetchProgramsForMonth } from '../services/googleSheetsService';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Calendar = () => {
@@ -13,10 +13,11 @@ const Calendar = () => {
   const [events, setEvents] = useState(sampleEvents);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const daysInMonth = getAllDaysInMonth(currentYear, currentMonth);
 
-  // Fetch Google Sheets data on mount
+  // Fetch Google Sheets data on mount (without programs)
   useEffect(() => {
     const loadEvents = async () => {
       try {
@@ -24,11 +25,17 @@ const Calendar = () => {
         setError(null);
         const sheetsData = await fetchGoogleSheetsEvents();
         setEvents(sheetsData);
+
+        // Fetch programs for the current month
+        await fetchProgramsForMonth(sheetsData, currentYear, currentMonth);
+        setEvents([...sheetsData]); // Trigger re-render after programs loaded
+        setInitialLoadComplete(true);
       } catch (err) {
         console.error('Failed to load Google Sheets data:', err);
         setError(err.message);
         // Fallback to sample events
         setEvents(sampleEvents);
+        setInitialLoadComplete(true);
       } finally {
         setLoading(false);
       }
@@ -36,6 +43,29 @@ const Calendar = () => {
 
     loadEvents();
   }, []);
+
+  // Fetch programs when month/year changes (after initial load)
+  useEffect(() => {
+    if (!initialLoadComplete) return; // Skip on initial mount
+
+    const loadProgramsForCurrentMonth = async () => {
+      try {
+        // Clear existing programs first
+        events.forEach(event => {
+          if (event.program_sheet_id) {
+            event.program = null;
+          }
+        });
+
+        await fetchProgramsForMonth(events, currentYear, currentMonth);
+        setEvents([...events]); // Trigger re-render after programs loaded
+      } catch (err) {
+        console.error('Failed to load programs for month:', err);
+      }
+    };
+
+    loadProgramsForCurrentMonth();
+  }, [currentMonth, currentYear, initialLoadComplete]);
 
   // Use all events (church filter removed)
   const filteredEvents = events;
@@ -149,16 +179,6 @@ const Calendar = () => {
 
                 <div className="flex gap-1 flex-shrink-0">
                   <button
-                    onClick={() => switchLanguage('en')}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      language === 'en'
-                        ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    EN
-                  </button>
-                  <button
                     onClick={() => switchLanguage('pt')}
                     className={`px-2 py-1 text-xs rounded transition-colors ${
                       language === 'pt'
@@ -167,6 +187,16 @@ const Calendar = () => {
                     }`}
                   >
                     PT
+                  </button>
+                  <button
+                    onClick={() => switchLanguage('en')}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      language === 'en'
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    EN
                   </button>
                 </div>
               </div>
@@ -220,16 +250,6 @@ const Calendar = () => {
                 {/* Language Selector */}
                 <div className="flex gap-1">
                   <button
-                    onClick={() => switchLanguage('en')}
-                    className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                      language === 'en'
-                        ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    EN
-                  </button>
-                  <button
                     onClick={() => switchLanguage('pt')}
                     className={`px-3 py-1.5 text-sm rounded transition-colors ${
                       language === 'pt'
@@ -238,6 +258,16 @@ const Calendar = () => {
                     }`}
                   >
                     PT
+                  </button>
+                  <button
+                    onClick={() => switchLanguage('en')}
+                    className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                      language === 'en'
+                        ? 'bg-blue-100 text-blue-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    EN
                   </button>
                 </div>
               </div>

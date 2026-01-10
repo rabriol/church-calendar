@@ -237,7 +237,7 @@ const EventCard = ({ event, isNextEvent }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span className={`text-sm font-medium ${eventColor.isCustomColor ? '' : eventColor.text}`}>
-                    Starts in: {countdown.days > 0 ? `${countdown.days}d ` : ''}{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
+                    {t('startsIn')}: {countdown.days > 0 ? `${countdown.days}d ` : ''}{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
                   </span>
                 </div>
               )}

@@ -55,6 +55,7 @@ export const translations = {
     noEvents: 'No Events This Month',
     noEventsDescription: 'has no scheduled events for',
     eventTypeCount: 'event types',
+    startsIn: 'Starts in',
 
     // Churches
     churches: {
@@ -137,6 +138,7 @@ export const translations = {
     noEvents: 'Sem Eventos Este Mês',
     noEventsDescription: 'não tem eventos agendados para',
     eventTypeCount: 'tipos de eventos',
+    startsIn: 'Começa em',
 
     // Churches
     churches: {

@@ -124,17 +124,50 @@ const parseCSV = (csv) => {
   return data;
 };
 
-// Fetch program data from a separate Google Sheet
-const fetchProgramData = async (programSheetId) => {
-  if (!programSheetId) return null;
+// Fetch program data from a separate Google Sheet with date-based tab lookup
+const fetchProgramData = async (programSheetId, eventDate) => {
+  if (!programSheetId || !eventDate) return null;
 
   try {
-    const url = getSheetCSVUrl(programSheetId);
-    const response = await axios.get(url);
-    const rows = parseCSV(response.data);
+    // Parse event date to format: mm/dd/yyyy (with leading zeros)
+    const [year, month, day] = eventDate.split('-').map(Number);
+    const dateKey = `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
+
+    console.log(`📅 Looking for program tab for date: ${dateKey}`);
+
+    // Step 1: Fetch the index/lookup tab (gid=0) which maps dates to gids
+    const indexUrl = getSheetCSVUrl(programSheetId, 0);
+    const indexResponse = await axios.get(indexUrl);
+    const indexRows = parseCSV(indexResponse.data);
+
+    console.log(`📋 Program index has ${indexRows.length} entries`);
+
+    // Step 2: Find the gid for the matching date
+    let programGid = null;
+    for (const row of indexRows) {
+      const rowDate = row.date || row.Date || '';
+      if (rowDate.trim() === dateKey) {
+        programGid = row.gid || row.Gid || row.GID;
+        console.log(`✅ Found matching program tab: date=${dateKey}, gid=${programGid}`);
+        break;
+      }
+    }
+
+    // If no matching date found, return null (no program to display)
+    if (!programGid) {
+      console.log(`⚠️ No program tab found for date: ${dateKey}`);
+      return null;
+    }
+
+    // Step 3: Fetch the actual program data from the matching tab
+    const programUrl = getSheetCSVUrl(programSheetId, programGid);
+    const programResponse = await axios.get(programUrl);
+    const programRows = parseCSV(programResponse.data);
+
+    console.log(`📊 Loaded ${programRows.length} program items for ${dateKey}`);
 
     // Transform program rows to a structured format
-    return rows.map(row => ({
+    return programRows.map(row => ({
       unit: row.unit || '',
       startTime: row.start_time || '',
       endTime: row.end_time || '',
@@ -376,7 +409,7 @@ const determineEventType = (title) => {
   return { id: 'special_event', icon: '📅', color: 'bg-indigo-600', borderColor: 'border-indigo-600' };
 };
 
-// Fetch and parse events from Google Sheets
+// Fetch and parse events from Google Sheets (without programs)
 export const fetchGoogleSheetsEvents = async () => {
   try {
     // Fetch colors first
@@ -406,13 +439,6 @@ export const fetchGoogleSheetsEvents = async () => {
         return isValid;
       });
 
-    // Fetch program data for events that have a program_sheet_id
-    await Promise.all(baseEvents.map(async (event) => {
-      if (event.program_sheet_id) {
-        event.program = await fetchProgramData(event.program_sheet_id);
-      }
-    }));
-
     // Expand recurring events
     const allEvents = [];
     const now = new Date();
@@ -433,5 +459,31 @@ export const fetchGoogleSheetsEvents = async () => {
   } catch (error) {
     console.error('Error fetching Google Sheets data:', error);
     throw error;
+  }
+};
+
+// Fetch programs for events in a specific month
+export const fetchProgramsForMonth = async (events, year, month) => {
+  try {
+    console.log(`📆 Fetching programs for ${month + 1}/${year}`);
+
+    // Filter events to only those in the specified month/year
+    const eventsInMonth = events.filter(event => {
+      const [eventYear, eventMonth] = event.date.split('-').map(Number);
+      return eventYear === year && eventMonth === month + 1;
+    });
+
+    console.log(`📊 Found ${eventsInMonth.length} events in ${month + 1}/${year} that may have programs`);
+
+    // Fetch programs for events in this month
+    await Promise.all(eventsInMonth.map(async (event) => {
+      if (event.program_sheet_id) {
+        event.program = await fetchProgramData(event.program_sheet_id, event.date);
+      }
+    }));
+
+    console.log(`✅ Programs loaded for ${month + 1}/${year}`);
+  } catch (error) {
+    console.error('Error fetching programs for month:', error);
   }
 };
