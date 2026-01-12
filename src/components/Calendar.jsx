@@ -50,9 +50,9 @@ const Calendar = () => {
 
     const loadProgramsForCurrentMonth = async () => {
       try {
-        // Clear existing programs first
+        // Clear existing programs from sheets (not from program_json)
         events.forEach(event => {
-          if (event.program_sheet_id) {
+          if (event.program_sheet_id && !event._programFromJson) {
             event.program = null;
           }
         });

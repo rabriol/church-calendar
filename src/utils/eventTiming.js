@@ -36,7 +36,16 @@ export const getEventStatus = (event, currentTime, assumedDuration = 2) => {
   const eventStart = getEventDateTime(event.date, event.time);
   if (!eventStart) return 'upcoming';
 
-  const eventEnd = new Date(eventStart.getTime() + assumedDuration * 60 * 60 * 1000);
+  // Use actual end time if available, otherwise assume duration
+  let eventEnd;
+  if (event.endTime) {
+    eventEnd = getEventDateTime(event.date, event.endTime);
+  }
+
+  // If no endTime or parsing failed, use assumed duration
+  if (!eventEnd) {
+    eventEnd = new Date(eventStart.getTime() + assumedDuration * 60 * 60 * 1000);
+  }
 
   if (currentTime < eventStart) {
     return 'upcoming';
