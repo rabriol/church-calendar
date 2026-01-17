@@ -173,7 +173,9 @@ const fetchProgramData = async (programSheetId, eventDate) => {
       endTime: row.end_time || '',
       act: row.act || '',
       title: row.title || '',
-      presenter: row.presenter || ''
+      presenter: row.presenter || '',
+      link: row.link || '',
+      linkDescription: row.link_description || ''
     })).filter(item => item.title); // Only include rows with a title
 
   } catch (error) {
@@ -348,75 +350,11 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     eventColor = colorMap[colorId] || null;
   }
 
-  // Parse program_json if available
-  let programData = null;
-  if (row.program_json) {
-    console.log('📋 Found program_json for event:', row.title);
-    console.log('📋 Raw program_json:', row.program_json);
-    try {
-      // Try to parse as-is first (proper JSON)
-      let programJson;
-      try {
-        programJson = JSON.parse(row.program_json);
-      } catch (firstError) {
-        // If that fails, convert object literal syntax to valid JSON
-        console.log('⚠️ First parse failed, converting object literal to JSON...');
-        try {
-          let fixed = row.program_json.trim();
-
-          // First, replace all newlines and control characters with spaces
-          fixed = fixed.replace(/[\n\r\t]+/g, ' ');
-          // Remove extra spaces
-          fixed = fixed.replace(/\s+/g, ' ');
-
-          // Add quotes around property names (schedule, time, title, notes)
-          fixed = fixed.replace(/([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-
-          // Add quotes around values
-          // This regex finds values after colons that aren't already quoted and don't start with { or [
-          fixed = fixed.replace(/:([^"{\[\s][^,}\]]*?)([,}\]])/g, (match, value, end) => {
-            // Trim the value and add quotes
-            return ':"' + value.trim() + '"' + end;
-          });
-
-          // Handle empty values (like notes:,)
-          fixed = fixed.replace(/:"",/g, ':"",');
-          fixed = fixed.replace(/:""\}/g, ':""}');
-
-          console.log('🔧 Fixed JSON:', fixed);
-          programJson = JSON.parse(fixed);
-          console.log('✅ Successfully parsed fixed JSON');
-        } catch (secondError) {
-          console.error('❌ Failed to fix and parse:', secondError);
-          throw secondError;
-        }
-      }
-
-      console.log('📋 Parsed program_json:', programJson);
-      if (programJson.schedule && Array.isArray(programJson.schedule)) {
-        // Transform JSON format to our program structure
-        programData = programJson.schedule.map(item => ({
-          unit: '',
-          startTime: item.time || '',
-          endTime: '',
-          act: item.notes || '',
-          title: item.title || '',
-          presenter: ''
-        }));
-        console.log('✅ Transformed program data:', programData);
-      } else {
-        console.warn('⚠️ program_json does not have schedule array');
-      }
-    } catch (error) {
-      console.error('❌ Error parsing program_json:', error);
-      console.error('❌ Raw value:', row.program_json);
-    }
-  }
-
   const event = {
     id: uniqueId,
     title: row.title,
     description: row.description || '',
+    htmlDescription: row.html_description || '',
     location: row.location || '',
     date: `${year}-${month}-${day}`,
     time: timeString,
@@ -425,8 +363,6 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     status: row.status || 'confirmed',
     recurrence_rule: row.recurrence_rule,
     program_sheet_id: row.program_sheet_id || '',
-    program: programData, // Add parsed program from JSON
-    _programFromJson: !!programData, // Track if program came from JSON
     youtubeUrl: row.youtube_url || '',
     zoomUrl: row.zoom_url || '',
     isLive: row.is_live?.toUpperCase() === 'TRUE',
@@ -444,11 +380,6 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
   // Debug logging for specific event
   if (row.row_id === 'E-0017' || row.event_id === 'E-0017') {
     console.log('✅ Event E-0017 transformed successfully:', event);
-  }
-
-  // Debug logging for events with program data
-  if (programData) {
-    console.log(`✅ Event "${row.title}" has program data:`, event.program);
   }
 
   return event;
@@ -547,7 +478,7 @@ export const fetchProgramsForMonth = async (events, year, month) => {
 
     console.log(`📊 Found ${eventsInMonth.length} events in ${month + 1}/${year} that may have programs`);
 
-    // Fetch programs for events in this month (only if not already set from program_json)
+    // Fetch programs for events in this month
     await Promise.all(eventsInMonth.map(async (event) => {
       if (event.program_sheet_id && !event.program) {
         event.program = await fetchProgramData(event.program_sheet_id, event.date);

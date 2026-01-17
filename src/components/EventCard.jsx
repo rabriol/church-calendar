@@ -192,7 +192,7 @@ const EventCard = ({ event, isNextEvent }) => {
     }
   }
 
-  const hasExpandableContent = event.location || event.description || hasDetails || event.youtubeUrl || event.zoomUrl;
+  const hasExpandableContent = event.location || event.description || event.htmlDescription || hasDetails || event.youtubeUrl || event.zoomUrl;
 
   return (
     <div
@@ -445,7 +445,7 @@ const EventCard = ({ event, isNextEvent }) => {
                 )}
 
                 {/* Description */}
-                {event.description && (
+                {event.description && !event.htmlDescription && (
                   <div className="flex items-start gap-2">
                     <svg className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -453,6 +453,19 @@ const EventCard = ({ event, isNextEvent }) => {
                     <p className="text-sm text-gray-700 leading-relaxed flex-1">
                       {translateEventContent(event.description, language)}
                     </p>
+                  </div>
+                )}
+
+                {/* HTML Description */}
+                {event.htmlDescription && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                    </svg>
+                    <div
+                      className="text-sm text-gray-700 leading-relaxed flex-1 html-description"
+                      dangerouslySetInnerHTML={{ __html: event.htmlDescription }}
+                    />
                   </div>
                 )}
 
@@ -590,6 +603,22 @@ const EventCard = ({ event, isNextEvent }) => {
                                   {item.presenter && (
                                     <div className="text-sm text-gray-600 mt-1">
                                       {item.presenter}
+                                    </div>
+                                  )}
+                                  {item.link && item.linkDescription && (
+                                    <div className="text-sm mt-2">
+                                      <a
+                                        href={item.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        {item.linkDescription}
+                                      </a>
                                     </div>
                                   )}
                                   {itemStatus === 'current' && (
