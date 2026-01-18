@@ -494,7 +494,7 @@ const EventCard = ({ event, isNextEvent }) => {
                         // Check if this program item is current
                         let itemStatus = 'upcoming';
                         if (isTodayEvent && eventStatus === 'ongoing' && item.startTime) {
-                          const timeMatch = item.startTime.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+                          const timeMatch = item.startTime.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)/i);
                           if (timeMatch) {
                             let hours = parseInt(timeMatch[1]);
                             const minutes = parseInt(timeMatch[2]);
@@ -509,7 +509,7 @@ const EventCard = ({ event, isNextEvent }) => {
                             // Check end time for next item
                             let nextItemDateTime = null;
                             if (index < event.program.length - 1 && event.program[index + 1].startTime) {
-                              const nextTimeMatch = event.program[index + 1].startTime.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+                              const nextTimeMatch = event.program[index + 1].startTime.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)/i);
                               if (nextTimeMatch) {
                                 let nextHours = parseInt(nextTimeMatch[1]);
                                 const nextMinutes = parseInt(nextTimeMatch[2]);
