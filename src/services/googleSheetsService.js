@@ -359,7 +359,7 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     date: `${year}-${month}-${day}`,
     time: timeString,
     endTime: endTimeString,
-    type: determineEventType(row.title),
+    type: row.event_type || determineEventType(row.title),
     status: row.status || 'confirmed',
     recurrence_rule: row.recurrence_rule,
     program_sheet_id: row.program_sheet_id || '',
@@ -367,6 +367,10 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     zoomUrl: row.zoom_url || '',
     isLive: row.is_live?.toUpperCase() === 'TRUE',
     color: eventColor, // Add color from Colors tab
+    // Registration fields
+    registrationUrl: row.registration_url || '',
+    registrationButtonText: row.registration_button_text || null,
+    registrationDeadline: row.registration_deadline || null,
     // Store original data for reference
     _original: {
       start_date: row.start_date,
