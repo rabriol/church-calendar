@@ -290,6 +290,24 @@ const EventCard = ({ event, isNextEvent }) => {
               </div>
             )}
 
+            {/* Registration Button */}
+            {event.registrationUrl && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <a
+                  href={event.registrationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded font-medium transition-colors shadow-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  <span>{event.registrationButtonText || (language === 'pt' ? 'Inscrever-se' : 'Register')}</span>
+                </a>
+              </div>
+            )}
+
             {/* Zoom Live Badge */}
             {event.zoomUrl && isTodayEvent && eventStatus === 'ongoing' && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -391,6 +409,30 @@ const EventCard = ({ event, isNextEvent }) => {
                           );
                         }
                       })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Registration Link */}
+                {event.registrationUrl && (
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <div className="flex-1">
+                      <a
+                        href={event.registrationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {event.registrationButtonText || (language === 'pt' ? 'Clique aqui para se inscrever' : 'Click here to register')}
+                      </a>
+                      {event.registrationDeadline && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {language === 'pt' ? 'Prazo: ' : 'Deadline: '}{event.registrationDeadline}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
