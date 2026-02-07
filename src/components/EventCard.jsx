@@ -3,6 +3,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { translateEventContent } from '../utils/translateEvent';
 import { isToday } from '../utils/dateUtils';
 import { getEventStatus, parseEventTime } from '../utils/eventTiming';
+import FundraiserProgress from './FundraiserProgress';
 
 const EventCard = ({ event, isNextEvent }) => {
   const { t, language } = useLanguage();
@@ -192,7 +193,7 @@ const EventCard = ({ event, isNextEvent }) => {
     }
   }
 
-  const hasExpandableContent = event.location || event.description || event.htmlDescription || hasDetails || event.youtubeUrl || event.zoomUrl;
+  const hasExpandableContent = event.location || event.description || event.htmlDescription || hasDetails || event.youtubeUrl || event.zoomUrl || (event.type === 'fundraiser' && event.fundraiser);
 
   return (
     <div
@@ -239,6 +240,11 @@ const EventCard = ({ event, isNextEvent }) => {
                     {t('startsIn')}: {countdown.days > 0 ? `${countdown.days}d ` : ''}{String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
                   </span>
                 </div>
+              )}
+
+              {/* Fundraiser Progress - Compact View */}
+              {event.type === 'fundraiser' && event.fundraiser && !isExpanded && (
+                <FundraiserProgress fundraiser={event.fundraiser} eventDate={event.date} compact={true} />
               )}
             </div>
 
@@ -328,6 +334,11 @@ const EventCard = ({ event, isNextEvent }) => {
             {/* Expanded Details Section - White Background like Google Calendar */}
             {isExpanded && hasExpandableContent && (
               <div className="mt-3 -mx-3 -mb-3 bg-white rounded-b p-4 space-y-4 animate-fadeIn border border-gray-200 shadow-sm">
+                {/* Fundraiser Progress - Expanded View */}
+                {event.type === 'fundraiser' && event.fundraiser && (
+                  <FundraiserProgress fundraiser={event.fundraiser} eventDate={event.date} compact={false} />
+                )}
+
                 {/* Date and Time Details */}
                 {(event._original?.start_date || event.time) && (
                   <div className="flex items-start gap-2">

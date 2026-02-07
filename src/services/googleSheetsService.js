@@ -359,7 +359,7 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     date: `${year}-${month}-${day}`,
     time: timeString,
     endTime: endTimeString,
-    type: determineEventType(row.title),
+    type: row.event_type || determineEventType(row.title),
     status: row.status || 'confirmed',
     recurrence_rule: row.recurrence_rule,
     program_sheet_id: row.program_sheet_id || '',
@@ -367,6 +367,14 @@ const transformSheetRowToEvent = (row, colorMap = null) => {
     zoomUrl: row.zoom_url || '',
     isLive: row.is_live?.toUpperCase() === 'TRUE',
     color: eventColor, // Add color from Colors tab
+    // Fundraiser fields
+    fundraiser: row.event_type === 'fundraiser' ? {
+      goal: parseFloat(row.fundraiser_goal) || 0,
+      current: parseFloat(row.fundraiser_current) || 0,
+      currency: row.fundraiser_currency || 'USD',
+      donateUrl: row.donate_url || '',
+      donateButtonText: row.donate_button_text || null
+    } : null,
     // Store original data for reference
     _original: {
       start_date: row.start_date,
@@ -457,6 +465,45 @@ export const fetchGoogleSheetsEvents = async () => {
         allEvents.push(event);
       }
     });
+
+    // TEST: Add hardcoded fundraiser event for February 4, 2026
+    const testFundraiser = {
+      id: 'test-fundraiser-2026-02-04',
+      title: 'Building Fund Campaign',
+      description: 'Help us complete construction of our new worship center. Every contribution brings us closer to having a permanent home for our growing congregation.',
+      htmlDescription: '<p>We are <strong>65% of the way</strong> to our goal!</p><ul><li>✅ Foundation completed</li><li>✅ Walls and roof installed</li><li>🚧 Interior work in progress</li><li>⏳ Final touches coming soon</li></ul><p>Your support makes this possible. Thank you! 🙏</p>',
+      location: 'New Church Building Site - 123 Faith Street',
+      date: '2026-02-04',
+      time: '10:00 AM',
+      endTime: '',
+      type: 'fundraiser',
+      status: 'confirmed',
+      recurrence_rule: null,
+      program_sheet_id: '',
+      youtubeUrl: '',
+      zoomUrl: '',
+      isLive: false,
+      color: {
+        hex: '#039BE5',
+        textColor: '#FFFFFF',
+        isCustomColor: true
+      },
+      fundraiser: {
+        goal: 5000,
+        current: 3250,
+        currency: 'USD',
+        donateUrl: 'https://example.com/donate/building-fund',
+        donateButtonText: 'Support Our Building'
+      },
+      _original: {
+        start_date: '02/04/2026',
+        end_date: '02/28/2026',
+        start_time: '10:00 AM',
+        end_time: '',
+        timezone: ''
+      }
+    };
+    allEvents.push(testFundraiser);
 
     return allEvents;
   } catch (error) {
