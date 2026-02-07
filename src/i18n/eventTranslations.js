@@ -1,6 +1,30 @@
 // Common event translations
 export const eventTranslations = {
   en: {
+    // Button labels
+    'Register': 'Register',
+    'Donate': 'Donate',
+    'Share': 'Share',
+    'View Program': 'View Program',
+    'Join Zoom': 'Join Zoom',
+    'Join Zoom Meeting': 'Join Zoom Meeting',
+    'Watch on YouTube': 'Watch on YouTube',
+
+    // Event details
+    'Presenter': 'Presenter',
+    'Location': 'Location',
+    'Program': 'Program',
+    'Deadline': 'Deadline',
+    'Finished': 'Finished',
+    'Ongoing': 'Ongoing',
+    'Upcoming': 'Upcoming',
+
+    // Fundraiser
+    'Goal': 'Goal',
+    'Raised': 'Raised',
+    'days left': 'days left',
+    'days remaining': 'days remaining',
+
     // Common event names
     'Sunday Worship Service': 'Sunday Worship Service',
     'Evening Prayer Meeting': 'Evening Prayer Meeting',
@@ -105,6 +129,30 @@ export const eventTranslations = {
   },
 
   pt: {
+    // Button labels
+    'Register': 'Inscrever-se',
+    'Donate': 'Doar',
+    'Share': 'Compartilhar',
+    'View Program': 'Ver Programa',
+    'Join Zoom': 'Entrar no Zoom',
+    'Join Zoom Meeting': 'Entrar na Sala do Zoom',
+    'Watch on YouTube': 'Assistir no YouTube',
+
+    // Event details
+    'Presenter': 'Apresentador',
+    'Location': 'Local',
+    'Program': 'Programa',
+    'Deadline': 'Prazo',
+    'Finished': 'Finalizado',
+    'Ongoing': 'Em Andamento',
+    'Upcoming': 'Próximo',
+
+    // Fundraiser
+    'Goal': 'Meta',
+    'Raised': 'Arrecadado',
+    'days left': 'dias restantes',
+    'days remaining': 'dias restantes',
+
     // Common event names
     'Sunday Worship Service': 'Culto Dominical',
     'Evening Prayer Meeting': 'Reunião de Oração Noturna',
@@ -206,5 +254,57 @@ export const eventTranslations = {
     'Worship, games, and Bible study for ages 18-30.': 'Adoração, jogos e estudo bíblico para idades de 18 a 30 anos.',
     'Dinner and seminar for married couples.': 'Jantar e seminário para casais.',
     'Band and singers rehearsal.': 'Ensaio da banda e cantores.'
+  },
+
+  es: {
+    // Button labels
+    'Register': 'Registrar',
+    'Donate': 'Donar',
+    'Share': 'Compartir',
+    'View Program': 'Ver Programa',
+    'Join Zoom': 'Unirse a Zoom',
+    'Join Zoom Meeting': 'Entrar en la Sala de Zoom',
+    'Watch on YouTube': 'Ver en YouTube',
+
+    // Event details
+    'Presenter': 'Presentador',
+    'Location': 'Ubicación',
+    'Program': 'Programa',
+    'Deadline': 'Fecha Límite',
+    'Finished': 'Finalizado',
+    'Ongoing': 'En Curso',
+    'Upcoming': 'Próximo',
+
+    // Fundraiser
+    'Goal': 'Meta',
+    'Raised': 'Recaudado',
+    'days left': 'días restantes',
+    'days remaining': 'días restantes',
+  },
+
+  ro: {
+    // Button labels
+    'Register': 'Înregistrează-te',
+    'Donate': 'Donează',
+    'Share': 'Distribuie',
+    'View Program': 'Vezi Programul',
+    'Join Zoom': 'Intră pe Zoom',
+    'Join Zoom Meeting': 'Intră în Sala Zoom',
+    'Watch on YouTube': 'Vizionează pe YouTube',
+
+    // Event details
+    'Presenter': 'Prezentator',
+    'Location': 'Locație',
+    'Program': 'Program',
+    'Deadline': 'Termen Limită',
+    'Finished': 'Finalizat',
+    'Ongoing': 'În Desfășurare',
+    'Upcoming': 'Viitor',
+
+    // Fundraiser
+    'Goal': 'Obiectiv',
+    'Raised': 'Strâns',
+    'days left': 'zile rămase',
+    'days remaining': 'zile rămase',
   }
 };
