@@ -4,6 +4,7 @@ import { getAllDaysInMonth, getMonthName, getEventsForDay } from '../utils/dateU
 import { sampleEvents } from '../data/sampleEvents';
 import { fetchGoogleSheetsEvents, fetchProgramsForMonth } from '../services/googleSheetsService';
 import { useLanguage } from '../contexts/LanguageContext';
+import { translateBatch } from '../services/translationService';
 
 const Calendar = () => {
   const { t, language, switchLanguage } = useLanguage();
@@ -19,6 +20,45 @@ const Calendar = () => {
 
   const daysInMonth = getAllDaysInMonth(currentYear, currentMonth);
 
+  // Preload translations for all event content in all languages
+  const preloadTranslations = async (events) => {
+    const textsToTranslate = [];
+
+    events.forEach(event => {
+      if (event.title) textsToTranslate.push(event.title);
+      if (event.description) textsToTranslate.push(event.description);
+      if (event.location) textsToTranslate.push(event.location);
+      if (event.presenter) textsToTranslate.push(event.presenter);
+
+      // Translate program items
+      if (event.program && Array.isArray(event.program)) {
+        event.program.forEach(item => {
+          if (item.title) textsToTranslate.push(item.title);
+          if (item.act) textsToTranslate.push(item.act);
+          if (item.presenter) textsToTranslate.push(item.presenter);
+          if (item.unit) textsToTranslate.push(item.unit);
+        });
+      }
+    });
+
+    // Remove duplicates
+    const uniqueTexts = [...new Set(textsToTranslate)];
+
+    // Preload translations for all supported languages
+    const targetLanguages = ['en', 'es', 'ro'];
+
+    if (uniqueTexts.length > 0) {
+      console.log(`Preloading ${uniqueTexts.length} texts to ${targetLanguages.length} languages...`);
+
+      // Translate to all languages in parallel
+      targetLanguages.forEach(targetLang => {
+        translateBatch(uniqueTexts, 'pt', targetLang).catch(error => {
+          console.error(`Error preloading ${targetLang} translations:`, error);
+        });
+      });
+    }
+  };
+
   // Fetch Google Sheets data on mount (without programs)
   useEffect(() => {
     const loadEvents = async () => {
@@ -31,6 +71,10 @@ const Calendar = () => {
         // Fetch programs for the current month
         await fetchProgramsForMonth(sheetsData, currentYear, currentMonth);
         setEvents([...sheetsData]); // Trigger re-render after programs loaded
+
+        // Preload translations for all content
+        preloadTranslations(sheetsData);
+
         setInitialLoadComplete(true);
       } catch (err) {
         console.error('Failed to load Google Sheets data:', err);
@@ -61,6 +105,9 @@ const Calendar = () => {
 
         await fetchProgramsForMonth(events, currentYear, currentMonth);
         setEvents([...events]); // Trigger re-render after programs loaded
+
+        // Preload translations for newly loaded programs
+        preloadTranslations(events);
       } catch (err) {
         console.error('Failed to load programs for month:', err);
       }
@@ -288,7 +335,7 @@ const Calendar = () => {
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      {language === 'pt' ? 'Mês' : 'Month'}
+                      {t('month')}
                     </button>
                     <button
                       onClick={() => setViewMode('week')}
@@ -298,7 +345,7 @@ const Calendar = () => {
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      {language === 'pt' ? 'Semana' : 'Week'}
+                      {t('week')}
                     </button>
                   </div>
                 </div>
@@ -337,7 +384,7 @@ const Calendar = () => {
                 {viewMode === 'week' && (
                   <div className="flex-1 text-center">
                     <h2 className="text-sm font-medium text-gray-700">
-                      {language === 'pt' ? 'Esta Semana' : 'This Week'}
+                      {t('thisWeek')}
                     </h2>
                   </div>
                 )}
@@ -378,6 +425,37 @@ const Calendar = () => {
                       <rect width="8" height="7" fill="#3C3B6E"/>
                     </svg>
                   </button>
+                  <button
+                    onClick={() => switchLanguage('es')}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      language === 'es'
+                        ? 'bg-blue-100'
+                        : 'hover:bg-gray-100 opacity-60'
+                    }`}
+                    aria-label="Español"
+                  >
+                    <svg className="w-5 h-4" viewBox="0 0 20 14" fill="none">
+                      <rect width="20" height="14" fill="#C60B1E"/>
+                      <rect width="20" height="4.67" y="0" fill="#C60B1E"/>
+                      <rect width="20" height="4.67" y="4.67" fill="#FFC400"/>
+                      <rect width="20" height="4.67" y="9.33" fill="#C60B1E"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => switchLanguage('ro')}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      language === 'ro'
+                        ? 'bg-blue-100'
+                        : 'hover:bg-gray-100 opacity-60'
+                    }`}
+                    aria-label="Română"
+                  >
+                    <svg className="w-5 h-4" viewBox="0 0 20 14" fill="none">
+                      <rect width="6.67" height="14" x="0" fill="#002B7F"/>
+                      <rect width="6.67" height="14" x="6.67" fill="#FCD116"/>
+                      <rect width="6.67" height="14" x="13.33" fill="#CE1126"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -401,7 +479,7 @@ const Calendar = () => {
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      {language === 'pt' ? 'Mês' : 'Month'}
+                      {t('month')}
                     </button>
                     <button
                       onClick={() => setViewMode('week')}
@@ -411,7 +489,7 @@ const Calendar = () => {
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      {language === 'pt' ? 'Semana' : 'Week'}
+                      {t('week')}
                     </button>
                   </div>
 
@@ -446,7 +524,7 @@ const Calendar = () => {
 
                   {viewMode === 'week' && (
                     <h2 className="text-xl font-normal text-gray-700">
-                      {language === 'pt' ? 'Esta Semana' : 'This Week'}
+                      {t('thisWeek')}
                     </h2>
                   )}
                 </div>
@@ -491,6 +569,37 @@ const Calendar = () => {
                       <rect width="8" height="7" fill="#3C3B6E"/>
                     </svg>
                   </button>
+                  <button
+                    onClick={() => switchLanguage('es')}
+                    className={`px-3 py-2 rounded transition-colors ${
+                      language === 'es'
+                        ? 'bg-blue-100'
+                        : 'hover:bg-gray-100 opacity-60'
+                    }`}
+                    aria-label="Español"
+                  >
+                    <svg className="w-6 h-5" viewBox="0 0 20 14" fill="none">
+                      <rect width="20" height="14" fill="#C60B1E"/>
+                      <rect width="20" height="4.67" y="0" fill="#C60B1E"/>
+                      <rect width="20" height="4.67" y="4.67" fill="#FFC400"/>
+                      <rect width="20" height="4.67" y="9.33" fill="#C60B1E"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => switchLanguage('ro')}
+                    className={`px-3 py-2 rounded transition-colors ${
+                      language === 'ro'
+                        ? 'bg-blue-100'
+                        : 'hover:bg-gray-100 opacity-60'
+                    }`}
+                    aria-label="Română"
+                  >
+                    <svg className="w-6 h-5" viewBox="0 0 20 14" fill="none">
+                      <rect width="6.67" height="14" x="0" fill="#002B7F"/>
+                      <rect width="6.67" height="14" x="6.67" fill="#FCD116"/>
+                      <rect width="6.67" height="14" x="13.33" fill="#CE1126"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -526,11 +635,19 @@ const Calendar = () => {
               </svg>
               <span>
                 {showPastEvents
-                  ? (language === 'pt' ? 'Ocultar eventos passados' : 'Hide past events')
-                  : (language === 'pt'
-                      ? `Mostrar ${pastEventCount} evento${pastEventCount !== 1 ? 's' : ''} passado${pastEventCount !== 1 ? 's' : ''}`
-                      : `Show ${pastEventCount} past event${pastEventCount !== 1 ? 's' : ''}`
-                    )
+                  ? t('hidePastEvents')
+                  : (() => {
+                      const count = pastEventCount;
+                      if (language === 'pt') {
+                        return `Mostrar ${count} evento${count !== 1 ? 's' : ''} passado${count !== 1 ? 's' : ''}`;
+                      } else if (language === 'es') {
+                        return `Mostrar ${count} evento${count !== 1 ? 's' : ''} pasado${count !== 1 ? 's' : ''}`;
+                      } else if (language === 'ro') {
+                        return count === 1 ? `Arată ${count} eveniment trecut` : `Arată ${count} evenimente trecute`;
+                      } else {
+                        return `Show ${count} past event${count !== 1 ? 's' : ''}`;
+                      }
+                    })()
                 }
               </span>
             </button>

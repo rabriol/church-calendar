@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translateEventContent } from '../utils/translateEvent';
+import { eventTranslations } from '../i18n/eventTranslations';
 import { isToday } from '../utils/dateUtils';
 import { getEventStatus, parseEventTime } from '../utils/eventTiming';
 
@@ -12,6 +13,11 @@ const EventCard = ({ event, isNextEvent }) => {
   const isTodayEvent = isToday(event.date);
 
   const hasDetails = event.presenter || event.program;
+
+  // Helper function to get UI label translations
+  const getLabel = (key) => {
+    return eventTranslations[language]?.[key] || key;
+  };
 
   // Google Calendar Event Color Palette (Official) with appropriate text colors (fallback)
   const googleColors = [
@@ -285,7 +291,7 @@ const EventCard = ({ event, isNextEvent }) => {
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                   </svg>
-                  <span>{language === 'pt' ? 'Compartilhar' : 'Share'}</span>
+                  <span>{getLabel('Share')}</span>
                 </a>
               </div>
             )}
@@ -303,7 +309,7 @@ const EventCard = ({ event, isNextEvent }) => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
-                  <span>{event.registrationButtonText || (language === 'pt' ? 'Inscrever-se' : 'Register')}</span>
+                  <span>{event.registrationButtonText ? translateEventContent(event.registrationButtonText, language) : getLabel('Register')}</span>
                 </a>
               </div>
             )}
@@ -323,7 +329,7 @@ const EventCard = ({ event, isNextEvent }) => {
                     <path d="M9 11C9 10.4477 9.44772 10 10 10H17C17.5523 10 18 10.4477 18 11V21C18 21.5523 17.5523 22 17 22H10C9.44772 22 9 21.5523 9 21V11Z" fill="currentColor"/>
                     <path d="M18 13.5L23 10V22L18 18.5V13.5Z" fill="currentColor"/>
                   </svg>
-                  <span>{language === 'pt' ? 'Entrar na Sala do Zoom' : 'Join Zoom Meeting'}</span>
+                  <span>{getLabel('Join Zoom Meeting')}</span>
                   <span className="inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
                 </a>
                 <a
@@ -338,7 +344,7 @@ const EventCard = ({ event, isNextEvent }) => {
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                   </svg>
-                  <span>{language === 'pt' ? 'Compartilhar' : 'Share'}</span>
+                  <span>{getLabel('Share')}</span>
                 </a>
               </div>
             )}
@@ -426,11 +432,11 @@ const EventCard = ({ event, isNextEvent }) => {
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                       >
-                        {event.registrationButtonText || (language === 'pt' ? 'Clique aqui para se inscrever' : 'Click here to register')}
+                        {event.registrationButtonText ? translateEventContent(event.registrationButtonText, language) : (language === 'pt' ? 'Clique aqui para se inscrever' : language === 'es' ? 'Haga clic aquí para registrarse' : language === 'ro' ? 'Faceți clic aici pentru a vă înregistra' : 'Click here to register')}
                       </a>
                       {event.registrationDeadline && (
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {language === 'pt' ? 'Prazo: ' : 'Deadline: '}{event.registrationDeadline}
+                          {getLabel('Deadline')}: {event.registrationDeadline}
                         </div>
                       )}
                     </div>
@@ -468,7 +474,7 @@ const EventCard = ({ event, isNextEvent }) => {
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-1"
                     >
-                      {language === 'pt' ? 'Entrar na Sala do Zoom' : 'Join Zoom Meeting'}
+                      {getLabel('Join Zoom Meeting')}
                     </a>
                   </div>
                 )}
@@ -517,9 +523,9 @@ const EventCard = ({ event, isNextEvent }) => {
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      {lang.presenter}
+                      {getLabel('Presenter')}
                     </h5>
-                    <p className="text-gray-700 ml-7">{event.presenter}</p>
+                    <p className="text-gray-700 ml-7">{translateEventContent(event.presenter, language)}</p>
                   </div>
                 )}
 
@@ -529,7 +535,7 @@ const EventCard = ({ event, isNextEvent }) => {
                       <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                       </svg>
-                      {lang.program}
+                      {getLabel('Program')}
                     </h5>
                     <div className="space-y-0">
                       {event.program.map((item, index) => {
@@ -616,7 +622,7 @@ const EventCard = ({ event, isNextEvent }) => {
                                   )}
                                   {item.unit && (
                                     <span className="text-xs text-gray-400 ml-auto">
-                                      {item.unit}
+                                      {translateEventContent(item.unit, language)}
                                     </span>
                                   )}
                                 </div>
@@ -630,7 +636,7 @@ const EventCard = ({ event, isNextEvent }) => {
                                 }`}>
                                   {item.act && (
                                     <div className="text-xs font-medium text-gray-500 mb-1">
-                                      {item.act}
+                                      {translateEventContent(item.act, language)}
                                     </div>
                                   )}
                                   <div className={`text-sm font-medium ${
@@ -640,11 +646,11 @@ const EventCard = ({ event, isNextEvent }) => {
                                       ? 'text-gray-500 line-through'
                                       : 'text-gray-700'
                                   }`}>
-                                    {item.title}
+                                    {translateEventContent(item.title, language)}
                                   </div>
                                   {item.presenter && (
                                     <div className="text-sm text-gray-600 mt-1">
-                                      {item.presenter}
+                                      {translateEventContent(item.presenter, language)}
                                     </div>
                                   )}
                                   {item.link && item.linkDescription && (
@@ -659,14 +665,14 @@ const EventCard = ({ event, isNextEvent }) => {
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                         </svg>
-                                        {item.linkDescription}
+                                        {translateEventContent(item.linkDescription, language)}
                                       </a>
                                     </div>
                                   )}
                                   {itemStatus === 'current' && (
                                     <span className="inline-flex mt-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white items-center gap-1">
                                       <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
-                                      {language === 'pt' ? 'AGORA' : 'NOW'}
+                                      {language === 'pt' ? 'AGORA' : language === 'es' ? 'AHORA' : language === 'ro' ? 'ACUM' : 'NOW'}
                                     </span>
                                   )}
                                 </div>
